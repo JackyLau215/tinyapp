@@ -4,6 +4,9 @@ const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 
+cookieParser = require('cookie-parser');
+app.use(cookieParser())
+
 app.set("view engine", "ejs");
 
 const urlDatabase = {
@@ -27,7 +30,10 @@ app.get("/hello", (req, res) => {
 
 //Add a route for /urls
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase };
+  let templateVars = { 
+    urls: urlDatabase, 
+    username: req.cookies["username"]
+  };
   res.render("urls_index", templateVars); 
 });
 
@@ -37,7 +43,7 @@ app.get("/urls/new", (req, res) => {
 
 //Add short URL
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies["username"] };
   res.render("urls_show", templateVars);
 });
 
@@ -61,11 +67,29 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls");
 });
 
+//Changing longURL while keeping shortURL
 app.post("/urls/:shortURL", (req, res) => {
   urlDatabase[req.params.shortURL] = req.body.longURL;
   res.redirect(`/urls/${req.params.shortURL}`);
 });
 
+//Endpoint to handle a POST to /login
+app.post("/login", (req, res) => {
+  // It should set a cookie named username to the value submitted in the request body via the login form. After our server has set the cookie it should redirect the browser back to the /urls page.
+  let username = req.body.username;
+  res.cookie("username", username);
+  // find the username from the request body
+  // use it to find the right user in urlDatabase 
+  // save that user's id into a variable
+  // store a cooke called user_id using that variable
+  res.redirect("/urls");
+});
+
+//logout
+app.post("/logout", (req, res) => {
+  res.clearCookie("username");
+  res.redirect("/urls");
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
