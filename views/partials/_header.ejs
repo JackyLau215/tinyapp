@@ -11,10 +11,12 @@
       </div>
     </div>
       <% if (!user) { %>
-      <form class="form-inline" method="POST" action="/login" label for = "username"> 
-        <label for="username"><%=  %></label>
-        <input class="form-control" style="margin-right: 1rem" type="text" name = "username">
+      <form class="form-inline" method="GET" action="/login"> 
         <button type="submit" class="btn btn-info"> Login </button>
+      </form>
+      <form class="navbar-nav" method="GET" action="/register">
+        <a style="margin-left: 1rem">
+        <button type="submit" class="btn btn-info"> Register </button>
       </form>
 
       <% } else { %>
@@ -25,9 +27,5 @@
         </form>
         <% } %>
         
-        <form class="navbar-nav" method="GET" action="/register">
-          <a style="margin-left: 1rem">
-          <button type="submit" class="btn btn-info"> Register </button>
-        </form>
   </nav>
 </header>

@@ -44,6 +44,14 @@ const emailCheck = (test) => {
   }
 };
 
+const getUserByEmail = (email) => {
+  for (user in users) {
+    if (users[user].email === email)  {
+      return users[user]
+    }
+  }
+};
+
 
 
 app.get("/", (req, res) => {
@@ -70,7 +78,8 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.cookies["userID"]] };
+  res.render("urls_new", templateVars);
 });
 
 //Add short URL
@@ -80,7 +89,7 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
+  //console.log(req.body);  // Log the POST request body to the console
   //res.send("Ok");         // Respond with 'Ok' (we will replace this)
   let newShort = generateRandomString();
   req.process(longURL);
@@ -107,14 +116,24 @@ app.post("/urls/:shortURL", (req, res) => {
 
 //Endpoint to handle a POST to /login
 app.post("/login", (req, res) => {
-  let username = req.body.username;
-  res.cookie("username", username);
-  res.redirect("/urls");
+  if (req.body.email === "") {
+    res.status(403);
+    res.send('Code 403, email address not found');
+  } 
+  const user = getUserByEmail(req.body.email)
+
+  if (user.password !== req.body.password) {
+    res.status(403);
+    res.send('Code 403, invalid password')
+  } else {
+    res.cookie("userID", user.id);
+    res.redirect("/urls");
+  }
 });
 
 //logout
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("userID");
   res.redirect("/urls");
 });
 
@@ -145,6 +164,13 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
   };
 });
+
+//GET login Endpoint & Template
+app.get("/login", (req, res) => {
+  let templateVars = { urls: urlDatabase, user: users[req.cookies["userID"]] };
+  res.render("login", templateVars);
+});
+
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
