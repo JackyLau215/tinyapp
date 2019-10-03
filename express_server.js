@@ -9,10 +9,42 @@ app.use(cookieParser())
 
 app.set("view engine", "ejs");
 
+const generateRandomString = () => {
+  let result = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  for ( let i = 0; i < 6; i++ ) {
+     result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+}
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
+
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+}
+
+const emailCheck = (test) => {
+  for (search in users) {
+    if (users[search].email === test) {
+      return true;
+    }
+  }
+};
+
+
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -32,7 +64,7 @@ app.get("/hello", (req, res) => {
 app.get("/urls", (req, res) => {
   let templateVars = { 
     urls: urlDatabase, 
-    username: req.cookies["username"]
+    user: users[req.cookies["userID"]]
   };
   res.render("urls_index", templateVars); 
 });
@@ -43,7 +75,7 @@ app.get("/urls/new", (req, res) => {
 
 //Add short URL
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies["username"] };
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.cookies["userID"]] };
   res.render("urls_show", templateVars);
 });
 
@@ -75,13 +107,8 @@ app.post("/urls/:shortURL", (req, res) => {
 
 //Endpoint to handle a POST to /login
 app.post("/login", (req, res) => {
-  // It should set a cookie named username to the value submitted in the request body via the login form. After our server has set the cookie it should redirect the browser back to the /urls page.
   let username = req.body.username;
   res.cookie("username", username);
-  // find the username from the request body
-  // use it to find the right user in urlDatabase 
-  // save that user's id into a variable
-  // store a cooke called user_id using that variable
   res.redirect("/urls");
 });
 
@@ -91,18 +118,38 @@ app.post("/logout", (req, res) => {
   res.redirect("/urls");
 });
 
+
+//Get Register endpoint & Template
+app.get("/register", (req, res) => {
+  let templateVars = { urls: urlDatabase, user: users[req.cookies["userID"]] };
+  res.render("register", templateVars);
+});
+
+//Post Register endpoint
+app.post("/register", (req, res) => {
+  if (req.body.email === "" || req.body.password === "") {
+    res.status(400);
+    res.send('Code 400, please enter a valid email or password');
+  } else if (emailCheck(req.body.email)) {
+    res.status(400);
+    res.send('Code 400, email already used')
+  } else {
+  const newID = generateRandomString();
+  users[newID] = {
+    id: newID,
+    email: req.body.email,
+    password: req.body.password
+  }
+  console.log((users));
+  res.cookie("userID", newID);
+  res.redirect("/urls");
+  };
+});
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
 
 
-function generateRandomString() {
-  var result           = '';
-  var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var charactersLength = characters.length;
-  for ( let i = 0; i < 6; i++ ) {
-     result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-}
+
