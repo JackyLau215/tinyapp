@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+const { getUserByEmail } = require("./helpers.js")
 const bcrypt = require('bcrypt'); 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
@@ -59,15 +60,6 @@ const emailCheck = (test) => {
   }
 };
 
-const getUserByEmail = (email) => {
-  for (user in users) {
-    if (users[user].email === email)  {
-      return users[user]
-    }
-  }
-};
-
-
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -92,17 +84,13 @@ app.get("/urls", (req, res) => {
       urls: urlsForUser(req.session.userID), 
       user: users[req.session.userID]
     };
-    console.log(templateVars)
     res.render("urls_index", templateVars); 
   }
 });
 
 app.post("/urls", (req, res) => {
-  //console.log(req.body);  // Log the POST request body to the console
-  //res.send("Ok");         // Respond with 'Ok' (we will replace this)
   let newShort = generateRandomString();
   urlDatabase[newShort] = { longURL: req.body.longURL, userID: req.session.userID };
-  //req.process(longURL);
   res.redirect(`/urls/${newShort}`);
   console.log(urlDatabase);
 });
@@ -130,6 +118,9 @@ app.get("/urls/:shortURL", (req, res) => {
 //Redirect to LongURL
 app.get("/u/:shortURL", (req, res) => {
   let longURL = urlDatabase[req.params.shortURL].longURL;
+  if (!longURL.startsWith("http")) {
+    longURL = 'http://' + longURL;
+  }
   res.redirect(longURL); 
 });
 
@@ -146,11 +137,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 //Edit: Changing longURL while keeping shortURL
 app.post("/urls/:shortURL", (req, res) => {
-  //console.log("before");
-  //console.log(urlDatabase[req.params.shortURL]); //{ longURL: 'http://example.com', userID: 'CZAx6u' }
   urlDatabase[req.params.shortURL].longURL = req.body.longURL;
-  //console.log("after");
-  //console.log(urlDatabase[req.params.shortURL]);
   res.redirect(`/urls/${req.params.shortURL}`);
 });
 
@@ -166,13 +153,11 @@ app.post("/login", (req, res) => {
     res.status(403);
     res.send('Code 403, email address not found');
   } 
-  const user = getUserByEmail(req.body.email)
-console.log(user.password);
+  const user = getUserByEmail(req.body.email, users)
   if (!bcrypt.compareSync(req.body.password, user.password)) {
     res.status(403);
     res.send('Code 403, invalid password')
   } else {
-    //res.cookie("userID", user.id);
     req.session.userID = user.id;
     res.redirect("/urls");
   }
@@ -180,7 +165,7 @@ console.log(user.password);
 
 //logout
 app.post("/logout", (req, res) => {
-  req.session = null //res.clearCookie("userID");
+  req.session = null 
   res.redirect("/urls");
 });
 
@@ -207,18 +192,12 @@ app.post("/register", (req, res) => {
     email: req.body.email,
     password: hashedPassword
   }
-  // console.log((users));
-  req.session.userID = newID;//cookie("userID", newID);
+  req.session.userID = newID;
   res.redirect("/urls");
   };
 });
 
 
-
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
-
-
-
-
